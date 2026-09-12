@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<title>891flash</title>
+<style>
+  :root { color-scheme: light dark; --edge:#8884; --accent:#2563eb; }
+  * { box-sizing: border-box; }
+  body { font: 14.5px/1.55 system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .15rem; }
+  .tag { color: #888; margin: 0 0 1.25rem; }
+  section { border: 1px solid var(--edge); border-radius: 10px; margin: 0 0 .9rem; padding: .85rem 1rem; }
+  section.done { border-color: #22c55e88; }
+  section h2 { font-size: 1rem; margin: 0 0 .5rem; display: flex; align-items: center; gap: .5rem; }
+  .num { display: inline-flex; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--accent);
+         color: #fff; align-items: center; justify-content: center; font-size: .8rem; flex: none; }
+  section.done .num { background: #22c55e; }
+  button { font: inherit; padding: .45rem .85rem; border-radius: 6px; border: 1px solid #8886; background: #7773; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  label { display: inline-flex; align-items: center; gap: .35rem; margin-right: 1rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .files { font-family: ui-monospace, monospace; font-size: 12.5px; margin: .55rem 0 0; }
+  .files div { padding: .1rem 0; }
+  .muted { color: #9ca3af; } .ok { color: #22c55e; } .err { color: #ef4444; } .warnc { color: #f59e0b; }
+  .warn { background: #f59e0b22; border: 1px solid #f59e0b88; border-radius: 8px; padding: .55rem .75rem; margin: .6rem 0 0; }
+  .danger { background: #ef444422; border-color: #ef444488; }
+  #log { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px;
+         background: #0b0b0b; color: #d8d8d8; border-radius: 8px; padding: .7rem; height: 240px; overflow: auto; margin-top: .6rem; }
+  progress { width: 100%; height: 15px; }
+  select, input[type=file] { font: inherit; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<h1>891flash</h1>
+<p class="tag">Flash FT-891 MAIN / panel / DSP firmware from the browser over WebSerial.
+  Chrome/Edge or Firefox 151+. Runs offline.</p>
+
+<!-- 1 · firmware folder -->
+<section id="s1">
+  <h2><span class="num">1</span> Firmware folder</h2>
+  <div class="row">
+    <button id="pickFw">Choose folder…</button>
+    <span id="fwState" class="muted">Pick the folder with your AH065 firmware files (.SFL, .bin, .dat).</span>
+  </div>
+  <input id="fwInput" type="file" webkitdirectory directory multiple class="hidden">
+  <div id="fwFiles" class="files"></div>
+</section>
+
+<!-- 2 · decode -->
+<section id="s2">
+  <h2><span class="num">2</span> Decode SFL → BIN</h2>
+  <div id="decodeBody" class="muted">Choose a firmware folder first.</div>
+</section>
+
+<!-- 3 · patches (optional) -->
+<section id="s3">
+  <h2><span class="num">3</span> Patches <span class="muted" style="font-weight:400">(optional)</span></h2>
+  <div class="row">
+    <button id="pickPatch">Add a folder…</button>
+    <span id="patchState" class="muted">Bundled patches load automatically; add a folder for your own .json patches.</span>
+  </div>
+  <input id="patchInput" type="file" webkitdirectory directory multiple class="hidden">
+</section>
+
+<!-- 4 · patch file (optional) -->
+<section id="s4">
+  <h2><span class="num">4</span> Patches <span class="muted" style="font-weight:400">(optional)</span></h2>
+  <div class="muted" style="margin-bottom:.4rem">Tick any patches to apply. Independent patches stack (applied top-to-bottom); conflicting or wrong-firmware patches fail before flashing.</div>
+  <div id="patchList" class="files"><span class="muted">No patches loaded — pick a folder in step 3.</span></div>
+  <div id="patchInfo" class="files"></div>
+</section>
+
+<!-- 5 · serial port -->
+<section id="s5">
+  <h2><span class="num">5</span> Serial port</h2>
+  <div class="row">
+    <button id="pickPort">Select port…</button>
+    <span id="portState" class="muted">Connect the radio's CAT (Enhanced) USB port, then select it.</span>
+  </div>
+</section>
+
+<!-- 6 · flash -->
+<section id="s6">
+  <h2><span class="num">6</span> Flash</h2>
+  <div class="row" id="tgtRow"></div>
+  <div id="entry" class="warn hidden"></div>
+  <div class="row" style="margin-top:.6rem">
+    <label><input type="checkbox" id="dry" checked> Dry run (handshake only, no erase/write)</label>
+  </div>
+  <div id="dryOff" class="warn danger hidden">Dry run is OFF — Flash will ERASE and WRITE the selected target.</div>
+  <div class="row" style="margin-top:.6rem">
+    <button id="flash" class="primary" disabled>Connect &amp; Flash</button>
+    <button id="clear">Clear log</button>
+  </div>
+  <div class="row" style="margin-top:.6rem"><progress id="bar" value="0" max="1"></progress>
+    <span id="pct" class="muted"></span></div>
+  <div id="log"></div>
+</section>
+
+<script type="module">
+import { WebSerialTransport } from './src/transport.js';
+import { flashFirmware, flashDsp, FIRMWARE_SIZE } from './src/flash.js';
+import { decodeSFL } from './src/sfl.js';
+import { applyPatches } from './src/patch.js';
+
+const $ = (id) => document.getElementById(id);
+const ENTRY = {
+  main:  'MAIN entry: rear PGM slide switch LEFT, then power on (blank display; do NOT press POWER).',
+  panel: 'PANEL entry: slide switch RIGHT; hold [PWR/LOCK]+[BAND]+[FAST] at power-on (TX/BUSY LED orange).',
+  dsp:   'DSP entry: slide switch RIGHT; hold [PWR/LOCK]+[F]+[C] at power-on (display reads "DSP WRITE MODE").',
+};
+
+// ---- state -----------------------------------------------------------------
+const st = {
+  fw: { main: {}, panel: {}, dsp: {} }, // each: {bin?:File, sfl?:File, dat?:File}
+  patches: {},   // name -> parsed patch object
+  order: [],     // patch names, in load order (apply order for stacking)
+  selected: [],  // names of patches ticked for application, in apply order
+  port: null,
+  target: null,
+};
+
+// ---- log / progress --------------------------------------------------------
+const logEl = $('log');
+function log(msg, cls) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight;
+}
+const ui = {
+  log,
+  progress(fraction, detail) { $('bar').value = fraction; $('pct').textContent = `${Math.round(fraction * 100)}%  ${detail || ''}`; },
+};
+const readBytes = async (file) => new Uint8Array(await file.arrayBuffer());
+
+// ---- step 1: firmware folder ----------------------------------------------
+$('pickFw').addEventListener('click', () => $('fwInput').click());
+$('fwInput').addEventListener('change', () => {
+  st.fw = { main: {}, panel: {}, dsp: {} };
+  for (const f of $('fwInput').files) {
+    const n = f.name.toLowerCase();
+    if (n.endsWith('.dat')) st.fw.dsp.dat = f;
+    else if (n.endsWith('.sfl') || n.endsWith('.bin')) {
+      const kind = n.endsWith('.bin') ? 'bin' : 'sfl';
+      if (/_m[_.]|ah065_m/.test(n)) st.fw.main[kind] = f;
+      else if (/_p[_.]|ah065_p/.test(n)) st.fw.panel[kind] = f;
+    }
+  }
+  renderFw();
+  renderDecode();
+  renderTargets();
+});
+
+function fwLabel(o) {
+  if (o.bin && o.sfl) return `${o.bin.name} (bin) + ${o.sfl.name} (sfl)`;
+  if (o.bin) return `${o.bin.name} (bin)`;
+  if (o.sfl) return `${o.sfl.name} (sfl → decode)`;
+  if (o.dat) return `${o.dat.name} (dat)`;
+  return '— not found —';
+}
+function renderFw() {
+  const found = st.fw.main.bin || st.fw.main.sfl || st.fw.panel.bin || st.fw.panel.sfl || st.fw.dsp.dat;
+  $('fwState').textContent = found ? 'Found:' : 'No AH065 firmware files found in that folder.';
+  $('fwState').className = found ? 'ok' : 'warnc';
+  $('fwFiles').innerHTML = '';
+  for (const [k, label] of [['MAIN', fwLabel(st.fw.main)], ['PANEL', fwLabel(st.fw.panel)], ['DSP', fwLabel(st.fw.dsp)]]) {
+    const d = document.createElement('div');
+    const have = !/not found/.test(label);
+    d.innerHTML = `<span class="${have ? 'ok' : 'muted'}">${k.padEnd(6)}</span> ${label}`;
+    $('fwFiles').appendChild(d);
+  }
+  $('s1').classList.toggle('done', !!found);
+}
+
+// ---- step 2: decode --------------------------------------------------------
+function renderDecode() {
+  const body = $('decodeBody');
+  const needs = [];
+  for (const t of ['main', 'panel']) if (!st.fw[t].bin && st.fw[t].sfl) needs.push(t);
+  if (!st.fw.main.sfl && !st.fw.panel.sfl && !st.fw.main.bin && !st.fw.panel.bin) {
+    body.className = 'muted'; body.textContent = 'Choose a firmware folder first.'; $('s2').classList.remove('done'); return;
+  }
+  if (needs.length === 0) {
+    body.className = 'ok'; body.textContent = 'All needed .bin files are present (or will be decoded on demand). Nothing to do.';
+    $('s2').classList.add('done'); return;
+  }
+  body.className = '';
+  body.innerHTML = `SFL files will be decoded automatically before flashing. You can also decode + download now:`;
+  const row = document.createElement('div'); row.className = 'row'; row.style.marginTop = '.5rem';
+  for (const t of needs) {
+    const b = document.createElement('button');
+    b.textContent = `Decode ${t.toUpperCase()} → ${st.fw[t].sfl.name.replace(/\.sfl$/i, '.bin')}`;
+    b.addEventListener('click', async () => {
+      try {
+        const dec = decodeSFL(await readBytes(st.fw[t].sfl));
+        log(`decoded ${t.toUpperCase()}: ${dec.records} records, checksum ${dec.checksum.toString(16).toUpperCase()}`
+            + (dec.expected !== null ? (dec.checksum === dec.expected ? ' (header CHECK SUM OK)' : ' (CHECK SUM MISMATCH!)') : ''),
+            dec.expected !== null && dec.checksum !== dec.expected ? 'err' : 'ok');
+        downloadBytes(dec.image, st.fw[t].sfl.name.replace(/\.sfl$/i, '.bin'));
+      } catch (e) { log('decode failed: ' + e.message, 'err'); }
+    });
+    row.appendChild(b);
+  }
+  body.appendChild(row);
+  $('s2').classList.add('done');
+}
+function downloadBytes(bytes, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---- step 3/4: patches -----------------------------------------------------
+// Auto-load patches bundled next to the launcher (served at /patches.json). This
+// is what makes an extracted release "just work" — the built-in patches appear
+// without the user picking a folder. Silently no-ops if the endpoint is absent
+// (e.g. opened without the Go launcher).
+async function loadBundledPatches() {
+  let list;
+  try {
+    const r = await fetch('patches.json', { cache: 'no-store' });
+    if (!r.ok) return;
+    list = await r.json();
+  } catch (_) { return; }
+  if (!Array.isArray(list) || list.length === 0) return;
+  let n = 0;
+  for (const name of list) {
+    if (st.patches[name]) continue;
+    try {
+      const obj = await (await fetch('patches/' + encodeURIComponent(name), { cache: 'no-store' })).json();
+      if (obj && obj.targets) { st.patches[name] = obj; st.order.push(name); n++; }
+    } catch (_) { /* skip a bad file, keep the rest */ }
+  }
+  if (n > 0) {
+    $('patchState').textContent = `${n} bundled patch(es) loaded — tick any to apply, or add your own folder.`;
+    $('patchState').className = 'ok';
+    $('s3').classList.add('done');
+    renderPatchList();
+  }
+}
+
+$('pickPatch').addEventListener('click', () => $('patchInput').click());
+$('patchInput').addEventListener('change', async () => {
+  // Merge into whatever is already loaded (bundled patches stay); skip dupes by name.
+  let added = 0;
+  for (const f of $('patchInput').files) {
+    if (!f.name.toLowerCase().endsWith('.json') || st.patches[f.name]) continue;
+    try {
+      const obj = JSON.parse(new TextDecoder().decode(await readBytes(f)));
+      if (!obj.targets) continue;
+      st.patches[f.name] = obj; st.order.push(f.name); added++;
+    } catch (_) { /* skip non-patch json */ }
+  }
+  const n = st.order.length;
+  $('patchState').textContent = added
+    ? `Added ${added} patch file(s) (${n} total).`
+    : (n ? `${n} patch(es) loaded; nothing new in that folder.` : 'No valid patch .json found in that folder.');
+  $('patchState').className = n ? 'ok' : 'warnc';
+  $('s3').classList.toggle('done', n > 0);
+  renderPatchList();
+});
+
+// checkbox list, in load order (= apply order for stacking)
+function renderPatchList() {
+  const list = $('patchList'); list.innerHTML = '';
+  if (st.order.length === 0) { list.innerHTML = '<span class="muted">No patches loaded — pick a folder in step 3.</span>'; renderPatchInfo(); return; }
+  for (const name of st.order) {
+    const p = st.patches[name];
+    const tgts = Object.keys(p.targets || {}).join(', ');
+    const lab = document.createElement('label');
+    lab.style.display = 'block';
+    const on = st.selected.includes(name);
+    lab.innerHTML = `<input type="checkbox" ${on ? 'checked' : ''}> <span class="ok">${p.name || name}</span>`
+      + `${p.version ? ' v' + p.version : ''} <span class="muted">— ${tgts}</span>`;
+    lab.querySelector('input').addEventListener('change', (e) => {
+      st.selected = st.order.filter((nm) => nm === name ? e.target.checked : st.selected.includes(nm));
+      renderPatchInfo(); renderTargets();
+    });
+    list.appendChild(lab);
+  }
+  renderPatchInfo();
+}
+
+// per-target verification detail for the ticked patches
+function renderPatchInfo() {
+  const info = $('patchInfo'); info.innerHTML = '';
+  for (const name of st.selected) {
+    const p = st.patches[name];
+    for (const [tname, t] of Object.entries(p.targets || {})) {
+      const d = document.createElement('div');
+      d.className = 'muted';
+      const stackable = (t.regions || []).every((r) => r.expect != null);
+      d.textContent = `  ${p.name || name} · ${tname}: base ${(t.base_sha256 || '').slice(0, 12)}…`
+        + (t.result_sha256 ? ` → result ${t.result_sha256.slice(0, 12)}…` : '')
+        + (stackable ? ' (stackable)' : '');
+      info.appendChild(d);
+    }
+  }
+  $('s4').classList.toggle('done', st.selected.length > 0);
+}
+
+// ---- step 5: port ----------------------------------------------------------
+$('pickPort').addEventListener('click', async () => {
+  if (!('serial' in navigator)) { $('portState').textContent = 'WebSerial unavailable — use Chrome/Edge or Firefox 151+ over localhost/https.'; $('portState').className = 'err'; return; }
+  try {
+    st.port = await navigator.serial.requestPort();
+    const i = (st.port.getInfo && st.port.getInfo()) || {};
+    const vid = i.usbVendorId, pid = i.usbProductId;
+    const cp210x = vid === 0x10c4;
+    $('portState').innerHTML = `Selected` + (vid != null
+      ? ` — VID 0x${vid.toString(16).padStart(4, '0')} PID 0x${(pid || 0).toString(16).padStart(4, '0')}`
+        + (cp210x ? ' <span class="ok">(CP210x)</span>' : ' <span class="warnc">(not a CP210x — is this the CAT port?)</span>')
+      : '.');
+    $('s5').classList.add('done');
+    updateFlashEnabled();
+  } catch (e) { $('portState').textContent = 'No port selected.'; $('portState').className = 'muted'; }
+});
+
+// ---- step 6: flash ---------------------------------------------------------
+function availableTargets() {
+  const a = [];
+  if (st.fw.main.bin || st.fw.main.sfl) a.push('main');
+  if (st.fw.panel.bin || st.fw.panel.sfl) a.push('panel');
+  if (st.fw.dsp.dat) a.push('dsp');
+  return a;
+}
+function renderTargets() {
+  const row = $('tgtRow'); row.innerHTML = '';
+  const avail = availableTargets();
+  if (avail.length === 0) { row.innerHTML = '<span class="muted">Choose firmware first.</span>'; st.target = null; updateFlashEnabled(); return; }
+  if (!avail.includes(st.target)) st.target = avail[0];
+  for (const t of avail) {
+    const nsel = (t !== 'dsp') ? st.selected.filter((nm) => st.patches[nm].targets[t]).length : 0;
+    const patchNote = nsel ? ` + ${nsel} patch${nsel > 1 ? 'es' : ''}` : '';
+    const l = document.createElement('label');
+    l.innerHTML = `<input type="radio" name="ftgt" value="${t}" ${t === st.target ? 'checked' : ''}> ${t.toUpperCase()}${patchNote}`;
+    l.querySelector('input').addEventListener('change', () => { st.target = t; renderEntry(); });
+    row.appendChild(l);
+  }
+  renderEntry(); updateFlashEnabled();
+}
+function renderEntry() {
+  const e = $('entry');
+  if (st.target) { e.textContent = ENTRY[st.target]; e.classList.remove('hidden'); }
+  else e.classList.add('hidden');
+}
+function updateFlashEnabled() { $('flash').disabled = !(st.port && st.target); }
+
+$('dry').addEventListener('change', () => $('dryOff').classList.toggle('hidden', $('dry').checked));
+$('clear').addEventListener('click', () => { logEl.textContent = ''; $('bar').value = 0; $('pct').textContent = ''; });
+
+async function buildImage(t) {
+  const src = st.fw[t];
+  let image;
+  if (src.bin) image = await readBytes(src.bin);
+  else {
+    const dec = decodeSFL(await readBytes(src.sfl));
+    if (dec.expected !== null && dec.checksum !== dec.expected) throw new Error(`${src.sfl.name}: header CHECK SUM mismatch`);
+    log(`decoded ${t.toUpperCase()} from ${src.sfl.name} (${dec.records} records)`, 'muted');
+    image = dec.image;
+  }
+  if (image.length !== FIRMWARE_SIZE) throw new Error(`${t} image is ${image.length} bytes, expected ${FIRMWARE_SIZE}`);
+  const entries = st.selected
+    .filter((nm) => st.patches[nm].targets[t])
+    .map((nm) => ({ patch: st.patches[nm], name: st.patches[nm].name || nm, target: t }));
+  if (entries.length) {
+    const { image: patched, applied } = await applyPatches(image, entries);
+    for (const a of applied) log(`applied "${a.name}" → ${t}, running ${a.resultHash.slice(0, 16)}…`, 'ok');
+    image = patched;
+  }
+  return image;
+}
+
+$('flash').addEventListener('click', async () => {
+  const t = st.target, dry = $('dry').checked;
+  if (!st.port || !t) return;
+  $('flash').disabled = true; $('bar').value = 0; $('pct').textContent = '';
+  let tr = null;
+  try {
+    let firmware = null;
+    if (!dry) {
+      if (t === 'dsp') firmware = await readBytes(st.fw.dsp.dat);
+      else firmware = await buildImage(t);
+    }
+    tr = new WebSerialTransport(st.port);
+    log(`=== ${t.toUpperCase()} ${dry ? 'DRY RUN' : 'FLASH'} ===`);
+    if (t === 'dsp') await flashDsp(tr, { firmware, dryRun: dry, ui });
+    else await flashFirmware(tr, { target: t, firmware, dryRun: dry, ui });
+    log('DONE.', 'ok');
+    log('Power-cycle the radio before flashing another target (and re-select the port if it disconnects).', 'muted');
+  } catch (e) {
+    log('ERROR — ' + (e && e.message ? e.message : e), 'err');
+    if (/close|open|already|network|device has been lost/i.test(String(e && e.message)))
+      log('If the radio was power-cycled, click "Select port…" again to reconnect.', 'muted');
+  } finally {
+    if (tr) { try { await tr.close(); } catch (_) {} }
+    $('flash').disabled = !(st.port && st.target);
+  }
+});
+
+// ---- init ------------------------------------------------------------------
+renderFw(); renderDecode(); renderTargets();
+loadBundledPatches();
+if (!('serial' in navigator)) log('WebSerial not available — use Chrome/Edge or Firefox 151+ served over localhost or https (not file://).', 'err');
+</script>
+</body>
+</html>

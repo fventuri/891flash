@@ -1,0 +1,53 @@
+{
+  "name": "FT-891 Live Supply-Voltage Mod",
+  "version": "1.0",
+  "note": "Contains ONLY the mod author's code (code-cave routines + redirect bytes). No Yaesu firmware bytes. Apply to your own official firmware .bin.",
+  "targets": {
+    "main": {
+      "base_name": "AH065_M_V0110.bin",
+      "base_size": 393216,
+      "base_sha256": "ce63d753f453a4de60cde100afaa1da607779b22af7dbd037187277e506272a3",
+      "result_sha256": "6a47ab4f3e428a2e0f745cb974fb25b6efe13be280efa9377b74fd00e5542fae",
+      "regions": [
+        {
+          "offset": "0x1c883",
+          "expect": "08",
+          "hex": "09"
+        },
+        {
+          "offset": "0x1c88a",
+          "expect": "b504",
+          "hex": "f14a"
+        },
+        {
+          "offset": "0x22282",
+          "expect": "25a2",
+          "hex": "f130"
+        },
+        {
+          "offset": "0x2f130",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "5e0225a25e02b3605e02a6cc6aa100ff25486aa900ff25495470a80847045a02b5045e02b3600c895470"
+        }
+      ]
+    },
+    "panel": {
+      "base_name": "AH065_P_V0101.bin",
+      "base_size": 393216,
+      "base_sha256": "c1235055ea169461fe3377e0a13b917198ed8f7dc459a7acbd04f66694ca1aef",
+      "result_sha256": "dbff9e00b344f798cd8950f54e3a8d809ae337df4a625a6f96fecdc59f93ef08",
+      "regions": [
+        {
+          "offset": "0x5a72",
+          "expect": "5e0083c6",
+          "hex": "5a00c640"
+        },
+        {
+          "offset": "0xc640",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "5e00c6765e0083c65a005a7601006df417710f9310330a931aa20f810aa10fb40aa40178cc010000c71a0a9a1fba46ea017d3000540401106df46a3800ff2345a020586000926a2900ff2a0fe90f6a2c00ff2a100ccd11adec0fa9094302f900ad094302fd00ac094302fc000c99461a6af000ff25826af000ff25836af000ff25846af000ff2585400e7961000f7a0000ff25825e00c64c0d517961000f7a0000ff25865e00c64c7901000a7a0000ff258a5e00c64c0d417961000f7a0000ff258e5e00c64c7901000b7a0000ff259201106d755a00c64c54151f111f121f101d151715151f07041f17151d1f151d01011f1f151f17151f0018000f100f"
+        }
+      ]
+    }
+  }
+}

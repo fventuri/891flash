@@ -1,0 +1,3 @@
+from_hex	to_hex	size_bytes	patch	notes
+0x2F12E	0x60000	200402	FULL CAVE	initial free (0xFF) arena before any patch
+0x2F130	0x2F15A	42	FT-891 Live Supply-Voltage Mod	MAIN-side DC-voltage code-cave routine

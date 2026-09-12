@@ -1,0 +1,28 @@
+# Build output
+/dist/
+*.exe
+*.zip
+SHA256SUMS*.txt
+
+# Compiled tool binaries (built from ./cmd/*) — do not commit
+/891flash
+/ft891flash
+/ft891patch
+/ft891customlogo
+cmd/891flash/891flash
+cmd/ft891flash/ft891flash
+cmd/ft891patch/ft891patch
+cmd/ft891customlogo/ft891customlogo
+
+# Yaesu firmware must NEVER be committed to this repo. These patterns are a
+# safety net — the tools work on firmware you supply locally, not from the repo.
+AH065_*.bin
+AH065_*.SFL
+*.SFL
+*.dat
+*_V0110*.bin
+*_V0101*.bin
+
+# Editor / OS cruft
+.DS_Store
+*.swp
