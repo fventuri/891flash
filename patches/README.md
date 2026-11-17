@@ -15,6 +15,7 @@ just tick them) or with **`ft891patch`** on the command line. See the top-level
 | File | Name | Boards | Firmware | What it does |
 |------|------|--------|----------|--------------|
 | `ft891_voltmeter.patch.json` | FT-891 Live Supply-Voltage Mod | MAIN + PANEL | MAIN `V0110`, PANEL `V0101` | Overlays the live DC supply voltage (`NN.NV`) in the top-right corner of the operating screen, and adds a `RM8;` CAT command that returns the supply voltage in decivolts. Source in `patch-src/voltmeter/`. |
+| `ft891_quickdial_fine.patch.json` | FT-891 Quick Dial Fine Steps | MAIN | MAIN `V0110` | Expands Menu 14-01 QUICK DIAL (the MULTI-knob VFO step in SSB/CW/RTTY/DATA) from 50/100/500 kHz to **1 / 5 / 10 / 50 / 100 / 500 kHz**, with full CAT `EX1401` read/write parity. Default becomes 10 kHz. Source in `patch-src/quickdial/`. |
 
 ## Stacking
 

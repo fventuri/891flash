@@ -1,0 +1,101 @@
+{
+  "name": "FT-891 QUICK DIAL Fine Steps",
+  "version": "1.3",
+  "note": "Expands Menu 14-01 QUICK DIAL (the MULTI-knob VFO tuning step in SSB/CW/RTTY/DATA) from the stock 3 options (50/100/500 kHz) to 6 ascending options: 1/5/10/50/100/500 kHz, with full CAT EX1401 read/write parity for the new range. Value ordering is chosen so value 2 = 10 kHz = the stock factory-default byte, so the power-on/reset default becomes 10 kHz with no defaults-table edit. Supersedes ft891_quickdial_1khz. Contains ONLY the mod author's code (cave routines + repoint bytes) and generic ASCII menu labels; no Yaesu firmware bytes. Apply to your own official firmware .bin. Sources: qd_step6.s, qd_inc6.s, qd_dec6.s, qd_cat_wr.s, qd_cat_rd.s.",
+  "targets": {
+    "main": {
+      "base_name": "AH065_M_V0110.bin",
+      "base_size": 393216,
+      "base_sha256": "ce63d753f453a4de60cde100afaa1da607779b22af7dbd037187277e506272a3",
+      "result_sha256": "dbbde470e10f4e33a9cb60b2f48743243e20063236e3a44624327e9846e7d1d9",
+      "regions": [
+        {
+          "offset": "0x1075e",
+          "expect": "5800fcae",
+          "hex": "5a02f160",
+          "note": "Menu 14-01 inc stub -> jmp qd_inc6(0x2f160); 3-bit field, clamp 5"
+        },
+        {
+          "offset": "0x112e8",
+          "expect": "5800fa66",
+          "hex": "5a02f180",
+          "note": "Menu 14-01 dec stub -> jmp qd_dec6(0x2f180); 3-bit field, clamp 0"
+        },
+        {
+          "offset": "0x13576",
+          "expect": "000158fd",
+          "hex": "0002f240",
+          "note": "Menu 14-01 label-table pointer: 0x158fd -> qd_labels(0x2f240) (6 entries)"
+        },
+        {
+          "offset": "0x1357a",
+          "expect": "5800fc5c",
+          "hex": "58000050",
+          "note": "Menu 14-01 label render: repoint branch from shared and#3 index-mask (0x131da) to an and#7 snippet (0x135ce) so values 4/5 index qd_labels as 100kHz/500kHz instead of aliasing (4&3=0,5&3=1) to 1kHz/5kHz"
+        },
+        {
+          "offset": "0x27734",
+          "expect": "6a3800ff",
+          "hex": "5a02f1a0",
+          "note": "QUICK DIAL step selector entry (SSB/CW/RTTY/DATA): jmp qd_step6(0x2f1a0)"
+        },
+        {
+          "offset": "0x16c84",
+          "expect": "5800f8fe",
+          "hex": "5a02f2a0",
+          "note": "Menu 14-01 CAT-write stub: bra shared-validator(0x16586) -> jmp qd_cat_wr(0x2f2a0); accepts 0..5"
+        },
+        {
+          "offset": "0x178bc",
+          "expect": "5800faa8",
+          "hex": "5a02f2d0",
+          "note": "Menu 14-01 CAT-read stub: bra shared-formatter(0x17368) -> jmp qd_cat_rd(0x2f2d0); reports 0..5"
+        },
+        {
+          "offset": "0x11d0c",
+          "expect": "e803a802",
+          "hex": "e807a805",
+          "note": "Menu 14-01 (value,max) predicate at 0x11d0a (single-caller): and#0x3/cmp#0x2 -> and#0x7/cmp#0x5"
+        },
+        {
+          "offset": "0x2f160",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "68180c80e0f8e807a80544040a084002f805140868985470",
+          "note": "cave: qd_inc6 (3-bit increment, clamp 5), 24 B"
+        },
+        {
+          "offset": "0x2f180",
+          "expect": "ffffffffffffffffffffffffffffffffffff",
+          "hex": "68180c80e0f8e80747021a08140868985470",
+          "note": "cave: qd_dec6 (3-bit decrement, clamp 0), 18 B"
+        },
+        {
+          "offset": "0x2f1a0",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "6a2800ff8daae8076a3800ff201c72006a3800ff201c72106a3800ff201c7220a80546107a010007a1206a3800ff201c70205470a80446107a01000186a06a3800ff201c70105470a803460e7a09c3506a3800ff201c70005470a802460e7a0927106a3800ff201c70005470a801460e7a0913886a3800ff201c700054707a0903e86a3800ff201c70005470",
+          "note": "cave: qd_step6 (6-way selector 1/5/10/50/100/500 kHz), 140 B"
+        },
+        {
+          "offset": "0x2f240",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "316b487a2020202020202020202020356b487a202020202020202020202031306b487a2020202020202020202035306b487a202020202020202020203130306b487a2020202020202020203530306b487a202020202020202020",
+          "note": "cave: qd_labels, 6 x 15-byte space-padded ASCII ('1kHz','5kHz','10kHz','50kHz','100kHz','500kHz'), 90 B"
+        },
+        {
+          "offset": "0x2f2a0",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "7a0200ff81ce5e01971645045a015a966a2800ff81cee80fa80645045a015a966850e0f8140868d85a015a9a",
+          "note": "cave: qd_cat_wr (CAT EX1401 write, accepts 0..5, 3-bit store), 44 B",
+          "comment": "tail-jumps to shared CAT completion 0x15a9a (ok) / 0x15a96 (reject); parser 0x19716"
+        },
+        {
+          "offset": "0x2f2d0",
+          "expect": "ffffffffffffffff",
+          "hex": "6858e8075a017322",
+          "note": "cave: qd_cat_rd (CAT EX1401 read, 3-bit mask), 8 B",
+          "comment": "tail-jumps to shared digit formatter 0x17322"
+        }
+      ]
+    }
+  }
+}

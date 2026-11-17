@@ -1,3 +1,9 @@
 from_hex	to_hex	size_bytes	patch	notes
 0x2F12E	0x60000	200402	FULL CAVE	initial free (0xFF) arena before any patch
 0x2F130	0x2F15A	42	FT-891 Live Supply-Voltage Mod	MAIN-side DC-voltage code-cave routine
+0x2F160	0x2F178	24	FT-891 QUICK DIAL Fine Steps	qd_inc6: 14-01 3-bit increment, clamp 5
+0x2F180	0x2F192	18	FT-891 QUICK DIAL Fine Steps	qd_dec6: 14-01 3-bit decrement, clamp 0
+0x2F1A0	0x2F22C	140	FT-891 QUICK DIAL Fine Steps	qd_step6: 6-way selector 1/5/10/50/100/500 kHz
+0x2F240	0x2F29A	90	FT-891 QUICK DIAL Fine Steps	qd_labels: 6x15B menu labels
+0x2F2A0	0x2F2CC	44	FT-891 QUICK DIAL Fine Steps	qd_cat_wr: CAT EX1401 write, accepts 0..5
+0x2F2D0	0x2F2D8	8	FT-891 QUICK DIAL Fine Steps	qd_cat_rd: CAT EX1401 read, 3-bit mask
