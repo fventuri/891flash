@@ -1,0 +1,27 @@
+{
+  "name": "FT-891 WAIT Defer (FC-50 scanning)",
+  "version": "1.1",
+  "note": "Defers the [WAIT] status overlay so it no longer covers the frequency digits WHILE you turn the main dial. The stock status-overlay builder (0x242b0) paints 'WAIT' over the frequency whenever the ATU gate 0xff202b.0 is set and a WAIT flag is active (0xff2029.6, or 0xff2027.2 && 0xff2011.0) - which, with an FC-50 attached, is exactly while you scan the VFO across a band (each detent re-arms a 25-count WAIT timer). This mod replaces only that WAIT decision block (0x242de..0x242fa) with a cave routine that suppresses WAIT while the main dial is moving, then shows WAIT normally once the dial settles - so the 'tuner is catching up, don't key up yet' cue still appears before TX. Dial motion is detected by watching the raw main-dial counter 0xff23c4 against our own shadow at 0xff8f01 (the firmware's own 0xff200d.3 'dial moved' bit was found to be too transient to gate on); a hold-off counter at 0xff8f00 keeps WAIT suppressed for K display refreshes after the last change so it returns a beat after you stop. Hi-SWR (0xff2013.4) and the entire ATU control state machine are untouched; the TX-side WAIT/inhibit logic is unchanged (display-only mod). The ATU gate at 0x242d4 still guards entry, so with NO FC-50 attached this routine never runs and the image is functionally identical to stock. Both RAM bytes (0xff8f00/0xff8f01) are unused (used RAM ends ~0xff8e37; stack top 0xffc000 grows down). K is a single tunable immediate in the cave (see note on 0x2f2e0). IMPORTANT: this patch has NOT been tested on hardware - the author has no FC-50 ATU, so WAIT could not be made to appear on the bench; the logic is verified by disassembly and reuses the stock draw path, but the hold-off value K (how long WAIT stays hidden after you stop) has not been tuned on a real tuner and may need adjusting. Contains ONLY the mod author's code; no Yaesu firmware bytes are copied. Apply to your own official firmware .bin. Source: wd_waitcave.s. Requested by M5TEA.",
+  "targets": {
+    "main": {
+      "base_name": "AH065_M_V0110.bin",
+      "base_size": 393216,
+      "base_sha256": "ce63d753f453a4de60cde100afaa1da607779b22af7dbd037187277e506272a3",
+      "result_sha256": "f230cf755b309907975c138defb1a569894cfc44bcb0c6f2c397fbea020e4c25",
+      "regions": [
+        {
+          "offset": "0x242de",
+          "expect": "6a3000ff20297360",
+          "hex": "5a02f2e000000000",
+          "note": "Status-overlay builder: replace the WAIT decision block (btst #6,@0xff2029 ...) with jmp wait_cave(0x2f2e0) + 2 NOP. The ATU gate at 0x242d4 and the Hi-SWR path at 0x242c2 are above this and unchanged; the shared draw tail at 0x24302/0x2430a is reused by the cave."
+        },
+        {
+          "offset": "0x2f2e0",
+          "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "hex": "6a2800ff23c46a2000ff8f011c0847106aa800ff8f01f80a6aa800ff8f0054706a2800ff8f00470a1a086aa800ff8f0054706a3000ff2029736046146a3000ff2027732047186a3000ff20117300470a7a010002431e5a0243025a02430a5470",
+          "note": "cave: wait_cave (WAIT-defer gate), 96 B. Detects dial motion by diffing raw dial counter 0xff23c4 vs our shadow 0xff8f01; hold-off counter at 0xff8f00. Byte at file 0x2f2f7 (the 0x0a in 'f8 0a mov.b #0x0a,r0l', the 24th byte of this hex = index 23) is K = hold-off in display refreshes after the last dial change; raise it if WAIT flickers during slow tuning, lower it for a snappier return. UNTUNED - no FC-50 was available to calibrate it. Draws WAIT via stock tail 0x24302 ('WAIT' msg 0x2431e) / 0x2430a, exactly as stock once the dial is settled."
+        }
+      ]
+    }
+  }
+}

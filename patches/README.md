@@ -16,6 +16,7 @@ just tick them) or with **`ft891patch`** on the command line. See the top-level
 |------|------|--------|----------|--------------|
 | `ft891_voltmeter.patch.json` | FT-891 Live Supply-Voltage Mod | MAIN + PANEL | MAIN `V0110`, PANEL `V0101` | Overlays the live DC supply voltage (`NN.NV`) in the top-right corner of the operating screen, and adds a `RM8;` CAT command that returns the supply voltage in decivolts. Source in `patch-src/voltmeter/`. |
 | `ft891_quickdial_fine.patch.json` | FT-891 Quick Dial Fine Steps | MAIN | MAIN `V0110` | Expands Menu 14-01 QUICK DIAL (the MULTI-knob VFO step in SSB/CW/RTTY/DATA) from 50/100/500 kHz to **1 / 5 / 10 / 50 / 100 / 500 kHz**, with full CAT `EX1401` read/write parity. Default becomes 10 kHz. Source in `patch-src/quickdial/`. |
+| `ft891_waitdefer.patch.json` | FT-891 WAIT Defer (FC-50 scanning) | MAIN | MAIN `V0110` | Keeps the **`WAIT`** status message from covering the frequency digits **while you turn the main dial** (an FC-50 ATU paints `WAIT` over the VFO the whole time you scan a band). `WAIT` is hidden while the dial moves and reappears once it settles, so the "tuner catching up, don't key up yet" cue still shows before TX. Display-only; Hi-SWR and the ATU/TX-inhibit logic are untouched. **Not yet hardware-tested** (author has no FC-50; inert with no tuner) — hold-off timing may need tuning. Source in `patch-src/waitdefer/`. |
 
 ## Stacking
 

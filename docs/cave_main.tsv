@@ -7,3 +7,4 @@ from_hex	to_hex	size_bytes	patch	notes
 0x2F240	0x2F29A	90	FT-891 QUICK DIAL Fine Steps	qd_labels: 6x15B menu labels
 0x2F2A0	0x2F2CC	44	FT-891 QUICK DIAL Fine Steps	qd_cat_wr: CAT EX1401 write, accepts 0..5
 0x2F2D0	0x2F2D8	8	FT-891 QUICK DIAL Fine Steps	qd_cat_rd: CAT EX1401 read, 3-bit mask
+0x2F2E0	0x2F340	96	FT-891 WAIT Defer (FC-50 scanning)	wait_cave: defer [WAIT] overlay while main dial moving (dial-counter 0xff23c4 + holdoff 0xff8f00/01)
