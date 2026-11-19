@@ -10,13 +10,14 @@ hold-off afterward), then **reappears once the dial settles** — so it still te
 you *"the tuner is catching up, don't key up yet"* before you transmit. Exactly the
 "defer it till the end of scanning" behaviour Mark asked for.
 
-> ⚠️ **Not yet tested on hardware.** The author does not own an FC-50 ATU, and the
-> `WAIT` message only appears when an FC-50 is attached — so this patch could not be
-> exercised on the bench. The logic is verified by disassembly and reuses the stock
-> draw path, and with **no FC-50 attached the image is functionally identical to
-> stock** (the routine sits behind the stock ATU gate and never runs). But the
-> hold-off value **K** — how long `WAIT` stays hidden after you stop turning — has
-> **not been tuned on a real tuner** and may need adjusting (see *Tuning K*).
+> ✅ **Confirmed working on hardware** by Mark, M5TEA (2026-11-19) on a radio with an
+> FC-50 ATU: the frequency is no longer covered while scanning a band. In his
+> operating he reported seeing no `WAIT` at all (which suited him) — so whether
+> `WAIT` also *reappears once the dial settles* has not been separately confirmed.
+> With **no FC-50 attached the image is functionally identical to stock** (the
+> routine sits behind the stock ATU gate and never runs). The author has no FC-50, so
+> the hold-off value **K** — how long `WAIT` stays hidden after you stop turning — is
+> still at its untuned default and may want adjusting (see *Tuning K*).
 
 ## What it does (and doesn't) touch
 
